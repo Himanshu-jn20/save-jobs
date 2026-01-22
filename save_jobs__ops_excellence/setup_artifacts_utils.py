@@ -37,8 +37,7 @@ def build_tasks(source_mode: str, nb1_path: str, nb2_path: str, env: str):
         task_key="GetJobDetails",
         notebook_task=jobs.NotebookTask(
             notebook_path=nb1_path,
-            source=jobs.Source(source_mode),
-            base_parameters={"ENV": env, "exclude_job_ids": ""}
+            source=jobs.Source(source_mode)
         ),
         timeout_seconds=0
     )
@@ -47,8 +46,7 @@ def build_tasks(source_mode: str, nb1_path: str, nb2_path: str, env: str):
         depends_on=[jobs.TaskDependency(task_key="GetJobDetails")],
         notebook_task=jobs.NotebookTask(
             notebook_path=nb2_path,
-            source=jobs.Source(source_mode),
-            base_parameters={"ENV": env}
+            source=jobs.Source(source_mode)
         ),
         timeout_seconds=0
     )
@@ -85,6 +83,10 @@ def create_job_with_fallback(
             name=job_name,
             max_concurrent_runs=1,
             tasks=tasks,
+            parameters=[
+                jobs.JobParameterDefinition(name="ENV", default=env),
+                jobs.JobParameterDefinition(name="exclude_job_ids", default="")
+            ],
             git_source=git_source_obj,
             email_notifications=jobs.JobEmailNotifications(
                 on_failure=emails_on_failure,
@@ -113,6 +115,10 @@ def create_job_with_fallback(
                         enable_elastic_disk=True,
                     ),
                 )
+            ],
+            parameters=[
+                jobs.JobParameterDefinition(name="ENV", default=env),
+                jobs.JobParameterDefinition(name="exclude_job_ids", default="")
             ],
             tasks=tasks,
             email_notifications=jobs.JobEmailNotifications(
