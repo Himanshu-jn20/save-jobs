@@ -310,11 +310,21 @@ def write_job_details_table() -> None:
     Creates the table if absent. Idempotent for first-run safety.
     Steps:
     1) Discover job_ids from system.lakeflow.jobs using Team/Type
-    2) Pull Jobs API payload in parallel with retries
-    3) Normalize tag case (lower for most, upper for Priority)
-    4) First run: saveAsTable; Subsequent runs: MERGE on job_id and soft-delete missing jobs
+    2) Exclude job_ids specified in exclude_job_ids param (applied at both SQL and API level)
+    3) Pull Jobs API payload in parallel with retries
+    4) Normalize tag case (lower for most, upper for Priority)
+    5) First run: saveAsTable; Subsequent runs: MERGE on job_id and soft-delete missing jobs
     """
     job_ids = _get_jobs_by_pairs()
+
+    # Apply exclude_job_ids filter at the API level as well (complements SQL-level filter)
+    if exclude_job_ids_list:
+        before_count = len(job_ids)
+        exclude_set = set(exclude_job_ids_list)
+        job_ids = [jid for jid in job_ids if str(jid) not in exclude_set]
+        excluded_count = before_count - len(job_ids)
+        print(f"[INFO] Excluded {excluded_count} job(s) per exclude_job_ids param. Remaining: {len(job_ids)} jobs to fetch details for.")
+
     payload = _get_job_details_payload(job_ids)
     schema = _schema_job_details()
     df = spark.createDataFrame(_transform_job_data(payload), schema=schema)
@@ -393,5 +403,4 @@ try:
 except Exception as e:
     print(f"Error while loading job_details: {e}")
     raise
-
 
